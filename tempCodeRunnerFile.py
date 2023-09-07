@@ -1,2 +1,1 @@
-ourses:
-    find_section(
+(boundary - act_inter['starting_time']).days

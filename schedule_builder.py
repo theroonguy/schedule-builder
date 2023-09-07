@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 import api_interface as api
 import visualizer as viz
+import random
 
 """ SCHEDULE BUILDER -- Notes
 
@@ -30,13 +31,18 @@ Options for priorities:
 
 """
 
-courses = ["MATH141", "ENES113", "PHYS260", "CHEM135", "ENES100"]
+# courses = ["MATH141", "ENES113", "PHYS260", "CHEM135", "ENES100"]
+# courses = ["MATH141", "ENES102", "PHYS235", "CHEM135", "CHEM136"]
+# random.shuffle(courses)
+courses = []
 semester = "202308"
 FC = False      # Freshmen connection
 
-priority_list = [
-    {"priority": "earliest_class", "value": ["10:00am"]}
-]
+# priority_list = [
+#     {"priority": "latest_class", "value": ["2:00pm"]},
+#     {"priority": "earliest_class", "value": ["8:00am"]}
+# ]
+
 priority = 0
 
 schedule = {
@@ -52,20 +58,22 @@ def jprint(obj):
     text = json.dumps(obj, sort_keys=True, indent=4)
     print(text)
 
-def add_section(section_id):
+def add_section(section_id, constraints):
     """Adds a new section from section_id. Returns new section object."""
     new_section = Class(section_id)
     new_section.add_courses()
-    if new_section.check_conflicts():
+    if new_section.check_conflicts(constraints):
         # If there are no conflicts, add to schedule.
         new_section.add_blocks_to_schedule()
         return new_section
 
-def find_section(course):
-    """Runs through available sections for a course until it finds one with no conflicts."""
+def find_section(course, constraints=None):
+    """Runs through available sections for a course until it finds one with no conflicts.
+    course: self explanatory
+    constraints: List of constraints from the priority list that will affect section search."""
     sections = api.get_course(course)['sections']
     for sect in sections:
-        new_sect = add_section(sect)
+        new_sect = add_section(sect, constraints)
         if new_sect:
             print('Section found: ', new_sect.id)
             return new_sect
@@ -84,6 +92,10 @@ def overlap(first_inter, second_inter):
     if delta.seconds >= 0 and delta.days == 0:
         return delta.seconds
     return False
+
+def visualize():
+    viz.gen_text(schedule)
+    viz.visualize()
 
 class Activity():
     """Base class for activities that take up blocks of time."""
@@ -164,7 +176,7 @@ class Class(Activity):
                 if "Th" in meeting['days']: self.add_block("Th", meeting['building'], meeting['room'], start, end)
                 if "F" in meeting['days']: self.add_block("F", meeting['building'], meeting['room'], start, end)
 
-    def check_conflicts(self):
+    def check_conflicts(self, constraints):
         """Checks for various conflicts. If there are no conflicts, returns True. Else, returns False.
         - Conflicts with earliest preferred time
         - Conflicts with Freshman Connection option
@@ -174,14 +186,21 @@ class Class(Activity):
         if self.del_if_FC():
             return False
 
-
         # repeat for every day of the week
         for day in schedule:
             act_inters = self.get_blocks_inters(day)
             
-            too_early = self.is_too_early(day)
-            if too_early:
-                self.del_self(f"Starts {(3600*24) - (act_inter['starting_time'] - earliest_class).seconds} too early"); return False
+            try:
+                for constraint in constraints:
+                    if constraint['priority'] == 'earliest_class':
+                        too_early = self.is_too_early(day, convert_datetime(constraint['value'][0]))
+                        if too_early:
+                            self.del_self(f"Starts {too_early} seconds too early"); return False
+                    elif constraint['priority'] == "latest_class":
+                        too_late = self.is_too_late(day, convert_datetime(constraint['value'][0]))
+                        if too_late:
+                            self.del_self(f"Ends {too_late} seconds too late"); return False
+            except: pass
 
             # # match against earliest time
             # for act_inter in act_inters:
@@ -218,13 +237,21 @@ class Class(Activity):
             if self.id.split("-")[1].startswith("FC"):
                 self.del_self("FC class"); return True
 
-    def is_too_early(self, day):
+    def is_too_early(self, day, boundary):
         # match against earliest time
         for act_inter in self.get_blocks_inters(day):
-            if (act_inter['starting_time'] - earliest_class).seconds >= 0 and (act_inter['starting_time'] - earliest_class).days == 0:
+            if (act_inter['starting_time'] - boundary).seconds >= 0 and (act_inter['starting_time'] - boundary).days == 0:
                 return False
             else: 
-                return (3600*24) - (act_inter['starting_time'] - earliest_class).seconds
+                return (3600*24) - (act_inter['starting_time'] - boundary).seconds
+
+    def is_too_late(self, day, boundary):
+        # match against latest time
+        for act_inter in self.get_blocks_inters(day):
+            if (boundary - act_inter['ending_time']).seconds >= 0 and (boundary - act_inter['ending_time']).days == 0:
+                return False
+            else: 
+                return (3600*24) - (boundary - act_inter['ending_time']).seconds
 
 class Extra(Activity):
     """Activity subclass for extracurricular activities."""
@@ -245,13 +272,43 @@ class Extra(Activity):
         self.blocks.append(block)
         schedule[day].append(block)
 
-earliest_class = convert_datetime("9:00am")
-
 # workout = Extra('workout', "work out at eppley rec center")
 # workout.add_block("Tu", convert_datetime("9:50am"), convert_datetime("8:30pm"), "Eppley Rec Center")
 
-for course in courses:
-    find_section(course)
+earliest_class = convert_datetime("8:00am")
 
-viz.gen_text(schedule)
-viz.visualize()
+# if priority_list[priority]['priority'] == "earliest_class":
+#     print(f"PRIORITY {priority}: Earliest class at {priority_list[priority]['value'][0]}")
+#     earliest_class = convert_datetime(priority_list[priority]['value'][0])
+
+def search(courses, priority_list, semester, FC):
+    courses = courses
+    semester = semester
+    FC = FC
+
+    for i in enumerate(priority_list):
+        print(f"Priority {i}: {priority_list[i[0]]['priority']}")
+
+    success = True
+
+    for course in courses:      # loop through all courses
+        # all constraints are considered at first
+        priority = len(priority_list)
+        found = False
+        while not found:        # if the section is not found, try again with less constraints
+            try:
+                new_section = find_section(course, priority_list[0:priority])
+            except: new_section = find_section(course)
+
+            if new_section: # if a section cannot be found with current constraints
+                found = True
+            else:
+                if priority == -1:
+                    print('priorities are too constraining')
+                    success = False
+                    break
+                print('could not find with priority ', priority_list[0:priority])
+                priority -= 1
+
+    if success:
+        visualize()

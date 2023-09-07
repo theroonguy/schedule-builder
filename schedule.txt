@@ -1,11 +1,16 @@
-MATH141-0121
+MATH141-0241
 Mon
-09:00 - 09:50
+11:00 - 11:50
 lightblue
 
-PHYS260-0301
+ENES100-0501
 Mon
-12:00 - 12:50
+12:00 - 13:50
+lightblue
+
+PHYS235-0104
+Mon
+16:00 - 16:50
 lightblue
 
 CHEM135-3427
@@ -13,19 +18,14 @@ Mon
 14:00 - 14:50
 lightblue
 
-ENES100-0302
-Mon
-10:00 - 11:50
+MATH141-0241
+Tue
+11:00 - 11:50
 lightblue
 
-MATH141-0121
+CHEM136-1135
 Tue
-09:00 - 09:50
-lightblue
-
-PHYS260-0301
-Tue
-14:00 - 15:15
+15:30 - 18:20
 lightblue
 
 CHEM135-3427
@@ -33,29 +33,29 @@ Tue
 12:30 - 13:45
 lightblue
 
-MATH141-0121
+MATH141-0241
 Wed
-09:00 - 09:50
+11:00 - 11:50
 lightblue
 
-ENES113-0101
+ENES100-0501
 Wed
-16:00 - 17:30
+12:00 - 13:50
 lightblue
 
-ENES100-0302
+PHYS235-0104
 Wed
-10:00 - 11:50
+16:00 - 16:50
 lightblue
 
-MATH141-0121
+MATH141-0241
 Thu
-09:00 - 09:50
+11:00 - 11:50
 lightblue
 
-PHYS260-0301
+PHYS235-0104
 Thu
-14:00 - 15:15
+14:00 - 14:50
 lightblue
 
 CHEM135-3427
@@ -63,8 +63,8 @@ Thu
 12:30 - 13:45
 lightblue
 
-MATH141-0121
+MATH141-0241
 Fri
-09:00 - 09:50
+11:00 - 11:50
 lightblue
 
